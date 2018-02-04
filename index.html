@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>visualize demo</title>
+    <link type="text/css" rel="stylesheet" href="./css/reset.css" />
+    <link type="text/css" rel="stylesheet" href="./css/maptalks.css" />
+    <style>
+        html,
+        body,
+        #map {
+            margin: 0px;
+            height: 100%;
+            width: 100%;
+            background: #111;
+        }
+
+        #tip {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            font-size: 12px;
+            color: white;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+    </style>
+     <script type="text/javascript" src="https://apps.bdimg.com/libs/jquery/2.1.1/jquery.min.js"></script>     
+    <script type="text/javascript" src="https://cdn.bootcss.com/echarts/3.8.5/echarts.min.js"></script>
+    <script type="text/javascript" src="./lib/three.min.js"></script>
+    <!-- <script type="text/javascript" src='./lib/mapbox-gl.js'></script> -->
+    <script type="text/javascript" src="./lib/maptalks.js"></script>
+    <script type="text/javascript" src="./lib/maptalks.three.js"></script>
+    <!-- <script type="text/javascript" src="./lib/maptalks.biglayer.js"></script> -->
+    <!-- <script type="text/javascript" src="./lib/maptalks.mapboxgl.js"></script> -->
+    <!-- <script type="text/javascript" src="./lib/maptalks.odline.js"></script> -->
+    <script type="text/javascript" src="./lib/echarts-gl.js"></script>
+    <script type="text/javascript" src="./loadjs/OBJLoader.js"></script>
+    <script type="text/javascript" src="./loadjs/MTLLoader.js"></script>
+    <script type="text/javascript" src="./loadjs/GLTFLoader.js"></script>
+</head>
+
+<body>
+    <div id="map"></div>
+    <span id="tip"></span>
+    <script>
+        var tip = document.getElementById('tip');
+        var map,myChart,threeLayer;
+        myChart=echarts.init(document.getElementById("map"));
+        // mapboxgl.accessToken =
+        //     'pk.eyJ1Ijoid2FuZ2p1ZTExOTkiLCJhIjoiY2l3NzJsMXZ6MDA1MDJvcGVvOXZ5aGtxNiJ9.6Md6VaUCF6RJPQT5d95Lhw';
+
+        // const baseLayer = new maptalks.MapboxglLayer('tile', {
+        //     glOptions: {
+        //         'style': 'mapbox://styles/wangjue1199/cj82fhtai9j572rqs7rwk6ii4'
+        //     }
+        // });
+
+
+        function initMap(){
+            $.getJSON('./data/deck_roads.json', function(regionsData) {
+                // myChart.hideLoading();
+                var data = regionsData.features;
+
+
+                var hStep = 300 / (data.length - 1);
+                var taxiRoutes=[];
+
+                var i = 0;
+                for (var x in data) {
+                    var lnglats = data[x].geometry.coordinates
+                    taxiRoutes.push({
+                        coords: lnglats,
+                        lineStyle: {
+                            color: echarts.color.modifyHSL('#5A94DF', Math.round(hStep * x))
+
+                        }
+                    })
+                }
+
+                var option = {
+                    maptalks: {
+                        center: [-74.01164278497646, 40.70769573605318],
+                        zoom: 16,
+                        pitch: 55,
+                        baseLayer: {
+                            'urlTemplate': '//{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                            'subdomains': ['a', 'b', 'c', 'd']
+                        },
+                        // pitch: 50,
+                        // bearing: -10,
+                        altitudeScale: 2,
+                        // style: 'mapbox://styles/mapbox/dark-v9',
+                        postEffect: {
+                            enable: true,
+                            FXAA: {
+                                enable: true
+                            }
+                        },
+                        light: {
+                            main: {
+                                intensity: 1,
+                                shadow: true,
+                                shadowQuality: 'high'
+                            },
+                            ambient: {
+                                intensity: 0.
+                            },
+                            ambientCubemap: {
+                                texture: '/asset/get/s/data-1491838644249-ry33I7YTe.hdr',
+                                exposure: 1,
+                                diffuseIntensity: 0.5,
+                                specularIntensity: 2
+                            }
+                        }
+                    },
+                    series: [{
+                    type: 'lines3D',
+
+                    coordinateSystem: 'maptalks',
+
+                    effect: {
+                        show: true,
+                        constantSpeed: 20,
+                        trailWidth: 2,
+                        trailLength: 0.4,
+                        trailOpacity: 1,
+                        spotIntensity: 10
+                    },
+
+                    blendMode: 'lighter',
+
+                    polyline: true,
+
+                    lineStyle: {
+                        width: 0.1,
+                        color: 'rgb(100, 100, 0)',
+                        opacity: 0.
+                    },
+
+                    data: {
+                        count: function() {
+                            return taxiRoutes.length;
+                        },
+                        getItem: function(idx) {
+                            return taxiRoutes[idx]
+                        }
+                    }
+                    }]
+            }
+            myChart.setOption(option);
+            window.addEventListener('resize', function () {
+               myChart.resize();
+            });
+            map= myChart.getModel().getComponent('maptalks').getMaptalks();
+            map.setZoom(15)
+
+            map.on('click',function(e){
+               console.log(e)
+           })
+
+           load();
+        });
+
+        }
+        // const map = new maptalks.Map("map", {
+        //     center: [-74.01164278497646, 40.70769573605318],
+        //     zoom: 16,
+        //     pitch: 55,
+        //     maxPitch: 80,
+        //     baseLayer: baseLayer
+        // });
+
+        
+
+        
+        // document.addEventListener('mousemove', function (e) {
+        //     const coord = map.containerPointToCoordinate(new maptalks.Point(e.clientX, e.clientY), map.getZoom());
+        //     tip.innerText = (coord.x.toFixed(4) + ', ' + coord.y.toFixed(4)) + (tip.attchText ? ', ' + tip.attchText +
+        //         ', ' : ', ') + map.getPitch().toFixed(0) + ', ' + map.getBearing().toFixed(0);
+        // });
+
+        function load(){
+        //     document.addEventListener('keydown', function (e) {
+        //     if (e.code === 'Space') {
+        //         map.animateTo({
+        //             center: [-74.00057181319778, 40.709464512864855],
+        //             zoom: 17,
+        //             pitch: 80,
+        //             bearing: -60
+        //         }, {
+        //             duration: 3000,
+        //             easing: 'in'
+        //         });
+        //     }
+        // });
+
+        setTimeout(function() {
+            map.animateTo({
+                    center: [-74.0066, 40.70768],
+                    zoom: 18,
+                    pitch: 0,
+                    bearing: -60
+                }, {
+                    duration: 3000,
+                    easing: 'in'
+                });
+        }, 6000);
+
+            initthreeLayer();
+            setTimeout(() => {
+                        // if (typeof (loadRoutes) === 'function') loadRoutes();
+                        if (typeof (loadBuildings) === 'function') loadBuildings();
+
+                        setTimeout(() => {
+                            if (typeof (drawElements) === 'function') drawElements();
+                            onload();
+                        }, 2000);
+                    }, 2000);
+
+        }
+
+        
+        initMap();
+    </script>
+
+    <script type="text/javascript" src="./js/route.js"></script>
+     <script type="text/javascript" src="./js/three.js"></script>
+    <script type="text/javascript" src="./js/building.js"></script>
+    <script type="text/javascript" src="./js/effect3d.js"></script> 
+    <!--<script type="text/javascript" src="./js/car.js"></script>-->
+    <script type="text/javascript" src="./js/gltf.js"></script>
+</body>
+
+</html>
